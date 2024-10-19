@@ -51,7 +51,7 @@ class MazeGenerator:
 class MazeVisualizer:
     def __init__(self, size: int):
         self.size = size
-        self.cell_size = 60  # Size of each cell in the visualization
+        self.cell_size = 60 
         self.window = tk.Tk()
         self.window.title("Q-Learning Maze Solver")
 
