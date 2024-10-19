@@ -8,45 +8,50 @@ from datetime import datetime
 class MazeGenerator:
     @staticmethod 
     def generate_maze(size: int = 6, complexity: float = 0.3) -> np.ndarray:
+        
         maze = np.zeros((size, size))
         num_walls = int((size * size) * complexity)
-        wall_positions = random.sample([(i, j) for i in range(size) for j in range(size)], num_walls)
         
-        for pos in wall_positions:
-            maze[pos] = 1
-            
-        maze[0, 0] = 0  # Start
-        maze[size-1, size-1] = 2  # Goal
+        wall_positions = random.sample([(i, j) for i in range(size) 
+                                               for j in range(size)], num_walls)
         
-        # Ensure path to goal
+        for i in wall_positions:
+            maze[i] = 1  
+        
+        maze[0, 0] = 0 
+        maze[size-1, size-1] = 2 
+        
         current = (0, 0)
         goal = (size-1, size-1)
-        path = MazeGenerator._find_path_to_goal(current, goal, maze)
+        path = MazeGenerator.find_path(current, goal, maze)
         
-        for pos in path:
-            maze[pos] = 0
-        maze[size-1, size-1] = 2
+        for i in path:
+            maze[i] = 0 
+
+        maze[size-1, size-1] = 2  
         
         return maze
     
     @staticmethod
-    def _find_path_to_goal(start: Tuple[int, int], goal: Tuple[int, int], 
-                          maze: np.ndarray) -> List[Tuple[int, int]]:
+    def find_path(start: Tuple[int, int], goal: Tuple[int, int], maze: np.ndarray) -> List[Tuple[int, int]]:
         path = [start]
         current = start
+        
         while current != goal:
             row, col = current
+            # Move towards the goal
             if row < goal[0]:
                 current = (row + 1, col)
             elif col < goal[1]:
                 current = (row, col + 1)
             path.append(current)
+        
         return path
 
 class MazeVisualizer:
     def __init__(self, size: int):
         self.size = size
-        self.cell_size = 60
+        self.cell_size = 60  # Size of each cell in the visualization
         self.window = tk.Tk()
         self.window.title("Q-Learning Maze Solver")
 
@@ -76,13 +81,13 @@ class MazeVisualizer:
         self.epsilon_label.pack(side=tk.LEFT, padx=10)
         
     def update_maze(self, maze: np.ndarray, current_pos: Tuple[int, int]):
-        self.canvas.delete("all")
+        self.canvas.delete("all") 
         
         colors = {
-            0: "white",  # empty
-            1: "gray",   # wall
-            2: "green",  # goal
-            3: "red"     # agent
+            0: "white",  
+            1: "gray",   
+            2: "green",  
+            3: "red"     
         }
         
         for i in range(self.size):
@@ -96,7 +101,7 @@ class MazeVisualizer:
                 color = colors[cell_value]
                 
                 if (i, j) == current_pos:
-                    color = colors[3]
+                    color = colors[3]  
                 
                 self.canvas.create_rectangle(x1, y1, x2, y2, fill=color, outline="black")
         
@@ -131,7 +136,7 @@ class MazeEnvironment:
         return self.current_pos
     
     def step(self, action: int) -> Tuple[Tuple[int, int], float, bool]:
-        moves = [(-1, 0), (0, 1), (1, 0), (0, -1)]
+        moves = [(-1, 0), (0, 1), (1, 0), (0, -1)]  
         new_pos = (
             self.current_pos[0] + moves[action][0],
             self.current_pos[1] + moves[action][1]
@@ -144,28 +149,29 @@ class MazeEnvironment:
         self.visualizer.update_maze(self.maze, self.current_pos)
         
         if self.current_pos == self.goal_pos:
-            return self.current_pos, 100, True
+            return self.current_pos, 100, True  # Goal reached
         elif new_pos != self.current_pos:
-            return self.current_pos, -1, False
+            return self.current_pos, -1, False  # Valid move
         else:
-            return self.current_pos, -5, False
+            return self.current_pos, -5, False  # Hit a wall
 
 class QLearningAgent:
     def __init__(self, state_size: int, action_size: int):
-        self.q_table = np.zeros((state_size, state_size, action_size))
-        self.epsilon = 1.0
+        self.q_table = np.zeros((state_size, state_size, action_size)) 
+        self.epsilon = 1.0  # Exploration rate
         self.epsilon_decay = 0.99
         self.epsilon_min = 0.01
         self.learning_rate = 0.1
-        self.gamma = 0.95
+        self.gamma = 0.95  # Discount factor
         
     def get_action(self, state: Tuple[int, int]) -> int:
-        if random.random() < self.epsilon:
-            return random.randint(0, 3)
-        return np.argmax(self.q_table[state])
+        if random.random() < self.epsilon:  
+            return random.randint(0, 3) 
+        return np.argmax(self.q_table[state]) 
     
     def update(self, state: Tuple[int, int], action: int, 
                reward: float, next_state: Tuple[int, int]):
+
         old_value = self.q_table[state][action]
         next_max = np.max(self.q_table[next_state])
         
@@ -180,7 +186,7 @@ def train(episodes: int = 200, maze_size: int = 6):
     env = MazeEnvironment(maze_size)
     agent = QLearningAgent(maze_size, 4)
     
-    success_rate = []
+    success_count = []
     window_size = 20
     successes = 0
     
@@ -201,20 +207,20 @@ def train(episodes: int = 200, maze_size: int = 6):
             steps += 1
             
             env.visualizer.update_status(episode + 1, steps, agent.epsilon)
-            time.sleep(0.1)  # so that it doesnt happen so fast
+            time.sleep(0.1) 
             
         if done and reward > 0:
             successes += 1
-            env.visualizer.log_message(f"Episode {episode + 1} completed successfully in {steps} steps!")
+            env.visualizer.log_message(f"Episode {episode + 1} completed in {steps} steps")
         else:
             env.visualizer.log_message(f"Episode {episode + 1} failed after {steps} steps")
             
         if episode % window_size == 0 and episode > 0:
-            success_rate = successes / window_size
+            success_rate = successes/window_size
             env.visualizer.log_message(f"Success rate over last {window_size} episodes: {success_rate:.2%}")
             successes = 0
         
-        time.sleep(0.5)  # to pause between every episode, make longer if we want to see it more
+        time.sleep(0.5)
     
     env.visualizer.window.mainloop()
 
