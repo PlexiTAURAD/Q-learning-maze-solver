@@ -88,7 +88,3 @@ You can customize several aspects of the project:
 
 - **Maze Size**: Modify the maze size (default: 6x6) in the `train()` function.
 - **Q-Learning Parameters**: Adjust the learning rate, discount factor, and epsilon values in the `QLearningAgent` class.
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
