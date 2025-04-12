@@ -75,6 +75,9 @@ class MazeVisualizer:
         self.epsilon_label = tk.Label(self.status_frame, text="Epsilon: 1.00")
         self.epsilon_label.pack(side=tk.LEFT, padx=10)
         
+        self.points_label = tk.Label(self.status_frame, text="Points: 0")
+        self.points_label.pack(side=tk.LEFT, padx=10)
+        
     def update_maze(self, maze: np.ndarray, current_pos: Tuple[int, int]):
         self.canvas.delete("all")
         
@@ -108,10 +111,11 @@ class MazeVisualizer:
         self.log_text.see(tk.END)
         self.window.update()
     
-    def update_status(self, episode: int, steps: int, epsilon: float):
+    def update_status(self, episode: int, steps: int, epsilon: float, points: float):
         self.episode_label.config(text=f"Episode: {episode}")
         self.steps_label.config(text=f"Steps: {steps}")
         self.epsilon_label.config(text=f"Epsilon: {epsilon:.2f}")
+        self.points_label.config(text=f"Points: {points:.2f}")
         self.window.update()
 
 class MazeEnvironment:
@@ -154,7 +158,7 @@ class QLearningAgent:
     def __init__(self, state_size: int, action_size: int):
         self.q_table = np.zeros((state_size, state_size, action_size))
         self.epsilon = 1.0
-        self.epsilon_decay = 0.99
+        self.epsilon_decay = 0.995
         self.epsilon_min = 0.01
         self.learning_rate = 0.1
         self.gamma = 0.95
@@ -184,6 +188,9 @@ def train(episodes: int = 200, maze_size: int = 6):
     window_size = 20
     successes = 0
     
+    # Track cumulative rewards across episodes
+    cumulative_rewards = []
+    
     for episode in range(episodes):
         state = env.reset()
         done = False
@@ -195,26 +202,36 @@ def train(episodes: int = 200, maze_size: int = 6):
         while not done and steps < 200:
             action = agent.get_action(state)
             next_state, reward, done = env.step(action)
-            agent.update(state, action, reward, next_state)
-            state = next_state
+            
+            if next_state != state:
+                agent.update(state, action, reward, next_state)
+                state = next_state
+                steps += 1
+            
             total_reward += reward
-            steps += 1
+            env.visualizer.update_status(episode + 1, steps, agent.epsilon, total_reward)
+            time.sleep(0.1)  # Slow down visualization
             
-            env.visualizer.update_status(episode + 1, steps, agent.epsilon)
-            time.sleep(0.1)  # so that it doesnt happen so fast
-            
+        cumulative_rewards.append(total_reward)
         if done and reward > 0:
             successes += 1
-            env.visualizer.log_message(f"Episode {episode + 1} completed successfully in {steps} steps!")
+            env.visualizer.log_message(
+                f"Episode {episode + 1} completed successfully in {steps} steps! Total Reward: {total_reward}"
+            )
         else:
-            env.visualizer.log_message(f"Episode {episode + 1} failed after {steps} steps")
-            
+            env.visualizer.log_message(
+                f"Episode {episode + 1} failed after {steps} steps. Total Reward: {total_reward}"
+            )
+        
         if episode % window_size == 0 and episode > 0:
-            success_rate = successes / window_size
-            env.visualizer.log_message(f"Success rate over last {window_size} episodes: {success_rate:.2%}")
+            success_rate.append(successes / window_size)
+            env.visualizer.log_message(
+                f"Success rate over last {window_size} episodes: {success_rate[-1]:.2%}. "
+                f"Average Reward: {np.mean(cumulative_rewards[-window_size:]):.2f}"
+            )
             successes = 0
         
-        time.sleep(0.5)  # to pause between every episode, make longer if we want to see it more
+        time.sleep(0.5)  # Pause between episodes
     
     env.visualizer.window.mainloop()
 
