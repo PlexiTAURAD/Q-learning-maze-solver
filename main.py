@@ -74,7 +74,7 @@ class MazeVisualizer:
         
         self.epsilon_label = tk.Label(self.status_frame, text="Epsilon: 1.00")
         self.epsilon_label.pack(side=tk.LEFT, padx=10)
-        
+         
         self.points_label = tk.Label(self.status_frame, text="Points: 0")
         self.points_label.pack(side=tk.LEFT, padx=10)
         
