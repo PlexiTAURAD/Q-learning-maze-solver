@@ -5,6 +5,9 @@ from typing import Tuple, List
 import tkinter as tk
 from datetime import datetime
 
+##########
+# Maze Generation and Visualization
+##########
 class MazeGenerator:
     @staticmethod 
     def generate_maze(size: int = 6, complexity: float = 0.3) -> np.ndarray:
@@ -18,7 +21,7 @@ class MazeGenerator:
         maze[0, 0] = 0  # Start
         maze[size-1, size-1] = 2  # Goal
         
-        # Ensure path to goal
+        # initialise every time
         current = (0, 0)
         goal = (size-1, size-1)
         path = MazeGenerator._find_path_to_goal(current, goal, maze)
@@ -118,6 +121,9 @@ class MazeVisualizer:
         self.points_label.config(text=f"Points: {points:.2f}")
         self.window.update()
 
+############
+# Q-Learning Agent and Environment
+############
 class MazeEnvironment:
     def __init__(self, size: int = 6):
         self.size = size
@@ -153,8 +159,12 @@ class MazeEnvironment:
             return self.current_pos, -1, False
         else:
             return self.current_pos, -5, False
+        
+##########
+# Q-Learning Agent
+##########
 
-class QLearningAgent:
+class QLearningAgent: # dont change annything here 
     def __init__(self, state_size: int, action_size: int):
         self.q_table = np.zeros((state_size, state_size, action_size))
         self.epsilon = 1.0
@@ -167,12 +177,42 @@ class QLearningAgent:
         if random.random() < self.epsilon:
             return random.randint(0, 3)
         return np.argmax(self.q_table[state])
-    
+    # This is where Q-table is updated
+    # The Q-table is a 3D array where the first two dimensions are the state (x, y) and the third dimension is the action
+    # Example Q-table update:
+# Assume:
+# - state = (1, 2)
+# - action = 0
+# - reward = 10
+# - next_state = (1, 3)
+# - learning_rate = 0.1
+# - gamma = 0.9
+# - old_value (Q[state][action]) = 5
+# - max Q-value for next_state = 15
+
+# Step 1: Get current Q-value
+# old_value = q_table[(1,2)][0] = 5
+
+# Step 2: Find max Q-value for next state
+# next_max = max(q_table[(1,3)]) = 15
+
+# Step 3: Calculate new Q-value
+# new_value = (1-0.1)*5 + 0.1*(10 + 0.9*15)
+#          = 0.9*5 + 0.1*(10 + 13.5)
+#          = 4.5 + 0.1*23.5
+#          = 4.5 + 2.35
+#          = 6.85
+
+# Step 4: Update Q-table
+# q_table[(1,2)][0] = 6.85
+
+# Step 5: Decay epsilon (if applicable)
+# epsilon = epsilon * epsilon_decay
     def update(self, state: Tuple[int, int], action: int, 
                reward: float, next_state: Tuple[int, int]):
-        old_value = self.q_table[state][action]
-        next_max = np.max(self.q_table[next_state])
+        old_value = self.q_table[state][action]     # Q(s,a)
         
+        next_max = np.max(self.q_table[next_state])
         new_value = (1 - self.learning_rate) * old_value + \
                    self.learning_rate * (reward + self.gamma * next_max)
         self.q_table[state][action] = new_value
@@ -188,7 +228,7 @@ def train(episodes: int = 200, maze_size: int = 6):
     window_size = 20
     successes = 0
     
-    # Track cumulative rewards across episodes
+    # Track cumulative rewards across episodes (not working rn)
     cumulative_rewards = []
     
     for episode in range(episodes):
@@ -202,6 +242,8 @@ def train(episodes: int = 200, maze_size: int = 6):
         while not done and steps < 200:
             action = agent.get_action(state)
             next_state, reward, done = env.step(action)
+            # Internal if statement checking if the next state is not a wall
+            # and if the next state is not the same as the current state
             
             if next_state != state:
                 agent.update(state, action, reward, next_state)
@@ -210,7 +252,7 @@ def train(episodes: int = 200, maze_size: int = 6):
             
             total_reward += reward
             env.visualizer.update_status(episode + 1, steps, agent.epsilon, total_reward)
-            time.sleep(0.1)  # Slow down visualization
+            time.sleep(0.1)  # Slow down visualization, remove to show reduction in sigma
             
         cumulative_rewards.append(total_reward)
         if done and reward > 0:
